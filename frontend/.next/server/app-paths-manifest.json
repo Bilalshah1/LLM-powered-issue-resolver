@@ -1,0 +1,14 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/api/clone/route": "app/api/clone/route.js",
+  "/connect/page": "app/connect/page.js",
+  "/about/page": "app/about/page.js",
+  "/signin/page": "app/signin/page.js",
+  "/login/page": "app/login/page.js",
+  "/solution/page": "app/solution/page.js",
+  "/contact/page": "app/contact/page.js",
+  "/signup/page": "app/signup/page.js",
+  "/issue/page": "app/issue/page.js",
+  "/page": "app/page.js"
+}

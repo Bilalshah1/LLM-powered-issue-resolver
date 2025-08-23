@@ -1,0 +1,14 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/favicon.ico/route": "/favicon.ico",
+  "/api/clone/route": "/api/clone",
+  "/connect/page": "/connect",
+  "/about/page": "/about",
+  "/signin/page": "/signin",
+  "/login/page": "/login",
+  "/solution/page": "/solution",
+  "/contact/page": "/contact",
+  "/signup/page": "/signup",
+  "/issue/page": "/issue",
+  "/page": "/"
+}
