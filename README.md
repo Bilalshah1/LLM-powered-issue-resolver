@@ -2,11 +2,11 @@
 
 An intelligent solution that leverages Large Language Models to automatically analyze, categorize, and provide resolutions for software issues and support tickets.
 
-## 🚀 Live Demo
+##  Live Demo
 
 **[View Live Application](https://saas-project-8e6a7.firebaseapp.com/)**
 
-## ✨ Features
+##  Features
 
 - **Intelligent Issue Analysis**: Automatically categorizes and analyzes issues using LLM
 - **Smart Resolution Suggestions**: Provides context-aware solutions and recommendations
@@ -14,7 +14,7 @@ An intelligent solution that leverages Large Language Models to automatically an
 - **User Authentication**: Secure login and user management
 - **Responsive Design**: Works seamlessly across desktop and mobile devices
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 ### Frontend
 - **Framework**: React.js
@@ -28,7 +28,7 @@ An intelligent solution that leverages Large Language Models to automatically an
 - **Deployment**: Render
 - **LLM Integration**: OpenAI API / Anthropic API
 
-## 🔧 Installation & Setup
+##  Installation & Setup
 
 ### Prerequisites
 - Node.js (v16 or higher)
@@ -66,12 +66,12 @@ An intelligent solution that leverages Large Language Models to automatically an
    npm start
    ```
 
-## 🚀 Deployment
+##  Deployment
 
 ### Frontend (Firebase)
 ### Backend (Render)
 
-## 📝 Usage
+##  Usage
 
 1. **Sign Up/Login**: Create an account or login using Firebase Authentication
 2. **Submit Issue**: Describe your technical issue or problem
