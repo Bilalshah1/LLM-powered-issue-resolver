@@ -348,6 +348,66 @@ async function embedFiles(repoName, repoPath) {
   return { successCount, errorCount, totalFiles: files.length, totalChunks };
 }
 
+
+
+app.get('/api/repos', async (req, res) => {
+  try {
+    const clonedReposPath = path.join(__dirname, 'cloned_repos');
+
+    if (!fs.existsSync(clonedReposPath)) {
+      return res.json({ repos: [] });
+    }
+
+    const repos = [];
+    const repoNames = fs.readdirSync(clonedReposPath);
+
+    for (const repoName of repoNames) {
+      const repoPath = path.join(clonedReposPath, repoName);
+
+      if (fs.statSync(repoPath).isDirectory()) {
+        const stats = fs.statSync(repoPath);
+        const clonedDate = stats.birthtime.toISOString().split('T')[0];
+
+        repos.push({
+          id: repoName.hashCode ? repoName.hashCode() : Math.random(),
+          name: repoName,
+          owner: "unknown", // You can extract from git config if needed
+          full_name: repoName,
+          clonedAt: clonedDate,
+          status: "active",
+          path: repoPath
+        });
+      }
+    }
+
+    // Sort by most recently cloned
+    repos.sort((a, b) => new Date(b.clonedAt) - new Date(a.clonedAt));
+
+    res.json({ repos });
+
+  } catch (error) {
+    console.error('Error fetching repos:', error);
+    res.status(500).json({ error: 'Failed to fetch repositories' });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 app.post('/api/search', async (req, res) => {
   const { query, limit = 10, repoName = null } = req.body;
 
