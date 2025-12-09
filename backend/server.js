@@ -356,7 +356,7 @@ async function getGeminiEmbedding(text) {
 // }
 
 async function embedFiles(repoName, repoPath) {
-  const COLLECTION_NAME = "repo_embeddings";
+  const COLLECTION_NAME = "your_collection";
 
   // -----------------------------
   // 1. Ensure Qdrant collection exists
