@@ -242,111 +242,226 @@ async function getGeminiEmbedding(text) {
   return result.embedding.values;
 }
 
+async function getGeminiEmbedding(text) {
+  const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+  const result = await model.embedContent(text);
+  return result.embedding.values;
+}
+
+
+// async function embedFiles(repoName, repoPath) {
+//   const COLLECTION_NAME = "your_collection";
+
+//   await qdrant.getCollection(COLLECTION_NAME);
+//   console.log(`Collection '${COLLECTION_NAME}' exists`);
+
+//   await qdrant.createCollection(COLLECTION_NAME, {
+//     vectors: {
+//       size: 768,
+//       distance: "Cosine"
+//     }
+//   });
+//   console.log(`Collection '${COLLECTION_NAME}' created successfully`);
+
+//   await qdrant.createPayloadIndex(COLLECTION_NAME, { field_name: "repoName", field_schema: "keyword" });
+
+//   const files = getAllFiles(repoPath);
+//   console.log(`Found ${files.length} files to embed`);
+
+//   let successCount = 0;
+//   let errorCount = 0;
+//   let totalChunks = 0;
+
+//   for (const filePath of files) {
+//     let rawContent = fs.readFileSync(filePath, "utf-8");
+//     console.log(`Processing file: ${filePath}`);
+
+//     let processedContent = rawContent;
+//     if (path.extname(filePath).toLowerCase() === '.ipynb') {
+//       console.log(`Extracting content from Jupyter notebook: ${filePath}`);
+//       processedContent = extractNotebookContent(rawContent);
+//       if (!processedContent) {
+//         console.log(`Failed to extract content from notebook: ${filePath}`);
+//         errorCount++;
+//         continue;
+//       }
+//     }
+
+//     const cleanedContent = cleanTextForEmbedding(processedContent);
+//     if (!cleanedContent) {
+//       console.log(`Skipping file with invalid content: ${filePath}`);
+//       continue;
+//     }
+
+//     const chunks = chunkText(cleanedContent, filePath);
+//     console.log(`Created ${chunks.length} chunks for ${filePath}`);
+//     totalChunks += chunks.length;
+
+//     if (chunks.length === 0) {
+//       console.log(`No chunks created for: ${filePath}`);
+//       continue;
+//     }
+
+//     for (const chunk of chunks) {
+//       const chunkText = cleanTextForEmbedding(chunk.text);
+//       if (!chunkText) {
+//         console.log(`Skipping invalid chunk ${chunk.index} in ${filePath}`);
+//         continue;
+//       }
+
+//       await new Promise(resolve => setTimeout(resolve, 100));
+
+//       const vector = await getGeminiEmbedding(chunkText);
+
+//       if (!Array.isArray(vector) || vector.length === 0) {
+//         console.error('Invalid vector received for chunk', chunk.index, 'of', filePath);
+//         errorCount++;
+//         continue;
+//       }
+
+//       const hash = crypto.createHash('sha256').update(`${filePath}_chunk_${chunk.index}`).digest('hex');
+//       const chunkId = parseInt(hash.slice(0, 12), 16);
+
+//       const upsertResult = await qdrant.upsert(COLLECTION_NAME, {
+//         points: [
+//           {
+//             id: chunkId,
+//             vector: vector,
+//             payload: {
+//               filePath: filePath,
+//               repoName: repoName,
+//               fileName: path.basename(filePath),
+//               fileExtension: path.extname(filePath),
+//               chunkIndex: chunk.index,
+//               startChar: chunk.startChar,
+//               endChar: chunk.endChar,
+//               chunkText: chunkText,
+//               totalChunks: chunks.length,
+//               fileSize: rawContent.length,
+//               chunkSize: chunkText.length,
+//               isNotebook: path.extname(filePath).toLowerCase() === '.ipynb',
+//               timestamp: new Date().toISOString()
+//             },
+//           },
+//         ],
+//       });
+
+//       console.log(`Successfully embedded chunk ${chunk.index} of ${path.basename(filePath)} (${chunkText.length} chars)`);
+//       successCount++;
+//     }
+//   }
+
+//   console.log(`Embedding complete: ${successCount} chunks successful, ${errorCount} errors, ${totalChunks} total chunks from ${files.length} files`);
+//   return { successCount, errorCount, totalFiles: files.length, totalChunks };
+// }
+
 async function embedFiles(repoName, repoPath) {
-  const COLLECTION_NAME = "your_collection";
+  const COLLECTION_NAME = "repo_embeddings";
 
-  await qdrant.getCollection(COLLECTION_NAME);
-  console.log(`Collection '${COLLECTION_NAME}' exists`);
-
-  await qdrant.createCollection(COLLECTION_NAME, {
-    vectors: {
-      size: 768,
-      distance: "Cosine"
-    }
-  });
-  console.log(`Collection '${COLLECTION_NAME}' created successfully`);
-
-  await qdrant.createPayloadIndex(COLLECTION_NAME, { field_name: "repoName", field_schema: "keyword" });
-
-  const files = getAllFiles(repoPath);
-  console.log(`Found ${files.length} files to embed`);
-
-  let successCount = 0;
-  let errorCount = 0;
-  let totalChunks = 0;
-
-  for (const filePath of files) {
-    let rawContent = fs.readFileSync(filePath, "utf-8");
-    console.log(`Processing file: ${filePath}`);
-
-    let processedContent = rawContent;
-    if (path.extname(filePath).toLowerCase() === '.ipynb') {
-      console.log(`Extracting content from Jupyter notebook: ${filePath}`);
-      processedContent = extractNotebookContent(rawContent);
-      if (!processedContent) {
-        console.log(`Failed to extract content from notebook: ${filePath}`);
-        errorCount++;
-        continue;
-      }
-    }
-
-    const cleanedContent = cleanTextForEmbedding(processedContent);
-    if (!cleanedContent) {
-      console.log(`Skipping file with invalid content: ${filePath}`);
-      continue;
-    }
-
-    const chunks = chunkText(cleanedContent, filePath);
-    console.log(`Created ${chunks.length} chunks for ${filePath}`);
-    totalChunks += chunks.length;
-
-    if (chunks.length === 0) {
-      console.log(`No chunks created for: ${filePath}`);
-      continue;
-    }
-
-    for (const chunk of chunks) {
-      const chunkText = cleanTextForEmbedding(chunk.text);
-      if (!chunkText) {
-        console.log(`Skipping invalid chunk ${chunk.index} in ${filePath}`);
-        continue;
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      const vector = await getGeminiEmbedding(chunkText);
-
-      if (!Array.isArray(vector) || vector.length === 0) {
-        console.error('Invalid vector received for chunk', chunk.index, 'of', filePath);
-        errorCount++;
-        continue;
-      }
-
-      const hash = crypto.createHash('sha256').update(`${filePath}_chunk_${chunk.index}`).digest('hex');
-      const chunkId = parseInt(hash.slice(0, 12), 16);
-
-      const upsertResult = await qdrant.upsert(COLLECTION_NAME, {
-        points: [
-          {
-            id: chunkId,
-            vector: vector,
-            payload: {
-              filePath: filePath,
-              repoName: repoName,
-              fileName: path.basename(filePath),
-              fileExtension: path.extname(filePath),
-              chunkIndex: chunk.index,
-              startChar: chunk.startChar,
-              endChar: chunk.endChar,
-              chunkText: chunkText,
-              totalChunks: chunks.length,
-              fileSize: rawContent.length,
-              chunkSize: chunkText.length,
-              isNotebook: path.extname(filePath).toLowerCase() === '.ipynb',
-              timestamp: new Date().toISOString()
-            },
-          },
-        ],
-      });
-
-      console.log(`Successfully embedded chunk ${chunk.index} of ${path.basename(filePath)} (${chunkText.length} chars)`);
-      successCount++;
-    }
+  // -----------------------------
+  // 1. Ensure Qdrant collection exists
+  // -----------------------------
+  let exists = true;
+  try {
+    await qdrant.getCollection(COLLECTION_NAME);
+    console.log(`Qdrant: Collection '${COLLECTION_NAME}' already exists.`);
+  } catch (err) {
+    exists = false;
+    console.log(`Qdrant: Collection '${COLLECTION_NAME}' does NOT exist. Creating...`);
   }
 
-  console.log(`Embedding complete: ${successCount} chunks successful, ${errorCount} errors, ${totalChunks} total chunks from ${files.length} files`);
-  return { successCount, errorCount, totalFiles: files.length, totalChunks };
+  if (!exists) {
+    await qdrant.createCollection(COLLECTION_NAME, {
+      vectors: {
+        size: 768, // depends on your embedding model
+        distance: "Cosine"
+      }
+    });
+    console.log(`Qdrant: Collection '${COLLECTION_NAME}' created.`);
+  }
+
+  // Create payload index (safe even if exists)
+  try {
+    await qdrant.createPayloadIndex(COLLECTION_NAME, {
+      field_name: "repoName",
+      field_schema: "keyword"
+    });
+  } catch (_) {
+    console.log("Index already exists. Skipping.");
+  }
+
+  // -----------------------------
+  // 2. Collect all text/code files
+  // -----------------------------
+  function getAllFiles(dir) {
+    let results = [];
+    const list = fs.readdirSync(dir);
+
+    for (const file of list) {
+      const fullPath = path.join(dir, file);
+      const stat = fs.statSync(fullPath);
+
+      if (stat.isDirectory()) {
+        results = results.concat(getAllFiles(fullPath));
+      } else {
+        // filter only meaningful files
+        if (!file.endsWith(".png") && !file.endsWith(".jpg") && !file.endsWith(".jpeg") && !file.endsWith(".gif")) {
+          results.push(fullPath);
+        }
+      }
+    }
+    return results;
+  }
+
+  const files = getAllFiles(repoPath);
+  console.log(`Found ${files.length} files to embed.`);
+
+  // -----------------------------
+  // 3. Embed file contents
+  // -----------------------------
+  let points = [];
+  for (const filePath of files) {
+    const content = fs.readFileSync(filePath, "utf8");
+
+    if (!content.trim()) continue;
+
+    // const embedding = await embedText(content);
+    //  // your custom embedding function
+    const embedding = await getGeminiEmbedding(content);
+
+
+    points.push({
+      vector: embedding,
+      payload: {
+        repoName,
+        filePath: filePath.replace(repoPath + "\\", ""),
+        text: content
+      }
+    });
+  }
+
+  // -----------------------------
+  // 4. Upload to Qdrant
+  // -----------------------------
+  console.log(`Uploading ${points.length} embeddings to Qdrant...`);
+
+  await qdrant.upsert(COLLECTION_NAME, {
+    wait: true,
+    points: points.map((p, idx) => ({
+      id: idx + Date.now(),
+      vector: p.vector,
+      payload: p.payload
+    }))
+  });
+
+  console.log(`Embedding upload complete.`);
+
+  return {
+    totalFiles: files.length,
+    embeddedFiles: points.length
+  };
 }
+
 
 
 
