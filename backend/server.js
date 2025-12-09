@@ -688,34 +688,76 @@ app.get('/health', (req, res) => {
 });
 
 app.post('/api/solve-issue', async (req, res) => {
-  const { issue, repoName = null, topK = 5 } = req.body;
+  try {
+    const { issue, repoName = null, topK = 5 } = req.body;
 
-  if (!issue || typeof issue !== 'string') {
-    return res.status(400).json({ message: "Issue description is required" });
-  }
+    // Enhanced validation with better error messages
+    if (!issue) {
+      console.warn('Request missing issue field:', req.body);
+      return res.status(400).json({ 
+        message: "Issue description is required",
+        received: { issue, repoName, topK }
+      });
+    }
 
-  const COLLECTION_NAME = "your_collection";
+    if (typeof issue !== 'string') {
+      console.warn('Issue field is not a string:', typeof issue);
+      return res.status(400).json({ 
+        message: "Issue description must be a string",
+        receivedType: typeof issue
+      });
+    }
 
-  const issueVector = await getGeminiEmbedding(issue);
-  if (!issueVector) {
-    return res.status(500).json({ message: "Failed to get embedding for issue" });
-  }
-  console.log("Issue embedding obtained", issueVector.slice(0, 5));
+    const issueContent = issue.trim();
+    if (issueContent.length === 0) {
+      return res.status(400).json({ 
+        message: "Issue description cannot be empty"
+      });
+    }
 
-  let filter = {};
-  if (repoName) {
-    filter = {
-      must: [{ key: "repoName", match: { value: repoName } }]
-    };
-  }
+    if (issueContent.length > 5000) {
+      return res.status(400).json({ 
+        message: "Issue description is too long (max 5000 characters)",
+        length: issueContent.length
+      });
+    }
 
-  if (repoName) {
-    filter = {
-      must: [{ key: "repoName", match: { value: repoName } }]
-    };
-  }
+    console.log(`Processing issue: "${issueContent.substring(0, 50)}..." (${issueContent.length} chars)`);
+    console.log(`RepoName: ${repoName || 'all'}, TopK: ${topK}`);
 
-  console.log("🔎 Embedding length:", issueVector.length);
+    const COLLECTION_NAME = "your_collection";
+
+    // Get embedding for the issue
+    let issueVector;
+    try {
+      issueVector = await getGeminiEmbedding(issueContent);
+    } catch (embeddingError) {
+      console.error('Error getting embedding:', embeddingError.message);
+      return res.status(500).json({ 
+        message: "Failed to process issue with embedding service",
+        error: embeddingError.message
+      });
+    }
+
+    if (!issueVector || !Array.isArray(issueVector) || issueVector.length === 0) {
+      console.error('Invalid embedding received:', issueVector);
+      return res.status(500).json({ 
+        message: "Failed to get embedding for issue"
+      });
+    }
+
+    console.log("✅ Issue embedding obtained, dimension:", issueVector.length);
+
+    // Build filter (remove duplicate code)
+    let filter = {};
+    if (repoName && typeof repoName === 'string' && repoName.trim().length > 0) {
+      filter = {
+        must: [{ key: "repoName", match: { value: repoName.trim() } }]
+      };
+      console.log(`🔎 Filtering by repo: ${repoName}`);
+    }
+
+    console.log("🔎 Embedding dimension:", issueVector.length);
 
   await qdrant.createPayloadIndex(COLLECTION_NAME, { field_name: "repoName", field_schema: "keyword" });
 
@@ -740,34 +782,41 @@ app.post('/api/solve-issue', async (req, res) => {
     return res.status(404).json({ message: "No relevant context found in Qdrant" });
   }
 
-  const solutionResponse = await groq.chat.completions.create({
-    messages: [
-      {
-        role: "system",
-        content: "You are an expert developer. Help solve coding issues based on provided context."
-      },
-      {
-        role: "user",
-        content: `A user has posted the following issue:\n\n"${issue}"\n\nBased on the following relevant code/documentation context:\n\n${topChunks}\n\nGenerate a helpful, concise solution or steps to fix this issue.`
-      }
-    ],
-    model: "llama3-8b-8192",
-    temperature: 0.1,
-    max_tokens: 1024
-  });
+    const solutionResponse = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert developer. Help solve coding issues based on provided context."
+        },
+        {
+          role: "user",
+          content: `A user has posted the following issue:\n\n"${issueContent}"\n\nBased on the following relevant code/documentation context:\n\n${topChunks}\n\nGenerate a helpful, concise solution or steps to fix this issue.`
+        }
+      ],
+      model: "llama3-8b-8192",
+      temperature: 0.1,
+      max_tokens: 1024
+    });
 
-  const responseText = solutionResponse.choices[0]?.message?.content;
-  console.log(responseText);
+    const responseText = solutionResponse.choices[0]?.message?.content;
+    console.log(responseText);
 
-  res.json({
-    issue,
-    solution: responseText?.trim() || "No solution generated.",
-    contextUsed: searchResults.map(r => ({
-      score: r.score,
-      filePath: r.payload.filePath,
-      chunkText: r.payload.chunkText
-    }))
-  });
+    res.json({
+      issue: issueContent,
+      solution: responseText?.trim() || "No solution generated.",
+      contextUsed: searchResults.map(r => ({
+        score: r.score,
+        filePath: r.payload.filePath,
+        chunkText: r.payload.chunkText
+      }))
+    });
+  } catch (error) {
+    console.error('Error in /api/solve-issue:', error);
+    res.status(500).json({ 
+      message: "Internal server error while processing issue",
+      error: error.message
+    });
+  }
 });
 
 app.post('/send-email', async (req, res) => {
