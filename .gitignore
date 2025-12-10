@@ -1,0 +1,43 @@
+# Node.js
+node_modules/
+.env
+npm-debug.log
+
+# Logs
+logs/
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Build output
+/dist/
+/build/
+
+# Next.js static export
+frontend/out/
+
+# IDE files
+.vscode/
+*.swp
+
+# Next.js
+.next/
+
+# Temp files
+frontend/temp/
+backend/cloned_repos/
+backend/cloned_repos/*/node_modules/
+backend/cloned_repos/*/.env
+backend/cloned_repos/*/logs/
+
+# Misc
+*.bak
+*.tmp
+
+# Firebase
+firebase-debug.log
+
+# EJS view cache
+views/*.ejs.cache
